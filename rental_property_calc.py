@@ -62,6 +62,7 @@ def rent_income(rent, growth, x):
     else:
         current_rent = rent * (1 + growth/100.0)**(((x-1) - ((x-1) % 12)) / 12)
         return current_rent
+    
 def expenses(price, taxes, insurance, maintenance, management, growth, vacancy, rent, x):
     if (x < 13):
         current_expenses = price * ((taxes + insurance + maintenance + management)/1200.0) + rent * (vacancy/100.0)
@@ -72,7 +73,16 @@ def expenses(price, taxes, insurance, maintenance, management, growth, vacancy, 
     else:
         current_expenses = (price * ((taxes + insurance + maintenance + management)/1200.0)) * (1 + growth/100.0)**(((x-1) - ((x-1) % 12)) / 12) + rent * (vacancy/100.0)
         return current_expenses
-        
+
+def cash_on_cash(cash_flow, down_payment, closing_costs, price, repairs):
+    upfront_cost = price * closing_costs / 100.0 + down_payment + repairs
+    cash_on_cash = cash_flow / (upfront_cost) * 100.0
+    return cash_on_cash
+
+def appreciation(price, appreciation, x):
+    new_price = price * (1 + (appreciation/1200.0))**(x)
+    return new_price
+
 print('Welcome to Rental Property Calculator')
 print('Here are our default values: ')
 data = dictionary_to_table(costs)
@@ -91,32 +101,20 @@ for x in range(len(user_input_labels)):
 data = dictionary_to_table(costs)
 
 table = pd.DataFrame(range(1, int(costs['timeline'])*12 + 1), columns = ['Month'])
-print(table)
 table['Monthly Income'] = table.apply(lambda row: rent_income(costs['rent'], costs['rent growth'], row['Month']), axis=1)
 table['Principal Payment'] = table.apply(lambda row: principal_payment(costs['purchase price'], costs['down payment'], costs['interest rate'], costs['loan term'], row.Month), axis=1)
 table['Interest Payment'] = table.apply(lambda row: interest_payment(costs['purchase price'], costs['down payment'], costs['interest rate'], costs['loan term'], row.Month), axis=1)
 table['Total Payment'] = table.apply(lambda row: row['Principal Payment'] + row['Interest Payment'], axis=1)
 table['Monthly Expenses'] = table.apply(lambda row: expenses(costs['purchase price'], costs['property tax'], costs['insurance'], costs['maintenance'], costs['management'], costs['expense growth'], costs['vacancy rate'], row['Monthly Income'], row['Month']), axis=1)
 table['Cash Flow'] = table.apply(lambda row: row['Monthly Income'] - row['Total Payment'] - row['Monthly Expenses'], axis=1)
+table['Cash on Cash Return'] = table.apply(lambda row: cash_on_cash(row['Cash Flow'], costs['down payment'], costs['closing cost'], costs['purchase price'], costs['intial repairs']), axis=1)
+table['Home Value'] = table.apply(lambda row: appreciation(costs['purchase price'], costs['appreciation'], row['Month']), axis=1)
+table['Equity from Payments'] = table['Principal Payment'].cumsum()
+table['Total Equity'] = table.apply(lambda row: row['Equity from Payments'] + costs['down payment'] + row['Home Value'] - costs['purchase price'], axis=1)
+table['Cash to Receive from Sale'] = table['Total Equity'] - table['Home Value'] * costs['cost to sell'] / 100.0
+#table['Equity Accumilated'] = table['Principal Payment'].cumsum() + costs['down payment'] + table['Home Value'] - costs['purchase price']
 print(table.head(36))
 
 
 
 
-#def mortgage(price, down_payment, interest, loan_term, timeline):
-#    x = 1
-#    sum_ipmt = 0
-#    sum_ppmt = 0
-#    database = pd.DataFrame(columns = ['Year', 'Interest', 'Principal', 'Total Mortgage'])
-#    r = interest / 1200.0
-#    N = loan_term * 12.0
-#    T = timeline * 12.0
-#    P = price - down_payment
-#    while (x < T):
-#        sum_ipmt += np.impt(r, x, N, P)
-#        sum_ppmt += np.ppmt(r, x, N, P)
-#        if (x % 12 == 0):
-#            database.loc[x/12]=
-#            
-#        
-#def cash_on_cash(cash_flow, investment):
